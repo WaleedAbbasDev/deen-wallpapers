@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deen Reminders</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deen">
+<meta name="theme-color" content="#0a1428">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    --bg: #0a1428; --card: #111e38; --line: #22314f;
+    --text: #f3efe6; --muted: #9aa6bd; --gold: #d6b46e;
+    --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  body { padding: calc(var(--safe-top) + 12px) 16px calc(var(--safe-bottom) + 84px); min-height: 100vh; }
+  h1 { font: 600 13px/1 -apple-system, sans-serif; letter-spacing: .22em; color: var(--gold);
+    text-align: center; margin: 6px 0 14px; text-transform: uppercase; }
+  h2 { font-size: 20px; margin: 22px 0 8px; }
+  h3 { font-size: 16px; margin: 18px 0 6px; color: var(--gold); }
+  p, li { color: #d8dce6; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .view { display: none; } .view.on { display: block; }
+
+  /* reminder view */
+  .frame { position: relative; margin: 0 auto; width: min(100%, 360px, calc((100svh - 250px - var(--safe-top) - var(--safe-bottom)) * 0.4613)); aspect-ratio: 1179 / 2556;
+    border-radius: 28px; overflow: hidden; background: #0d1830; box-shadow: 0 20px 50px #0008; }
+  .frame img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .35s; }
+  .frame .clock { position: absolute; top: 8.5%; left: 0; right: 0; text-align: center; color: #fffffff2;
+    font: 300 clamp(40px, 17vw, 64px)/1 -apple-system, sans-serif; letter-spacing: -1px; pointer-events: none; }
+  .frame .date { position: absolute; top: 5.6%; left: 0; right: 0; text-align: center; color: #ffffffd0;
+    font: 600 15px/1 -apple-system, sans-serif; pointer-events: none; }
+  .row { display: flex; gap: 10px; justify-content: center; margin: 16px auto 0; max-width: 360px; }
+  button { font: 600 15px/1 -apple-system, sans-serif; border: 0; border-radius: 14px; padding: 14px 16px;
+    background: var(--card); color: var(--text); flex: 1; cursor: pointer; }
+  button.primary { background: var(--gold); color: #1a1408; }
+  button:active { transform: scale(.97); }
+
+  /* browse */
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .chip { flex: 0 0 auto; padding: 8px 14px; border-radius: 99px; background: var(--card);
+    color: var(--muted); font-size: 14px; border: 1px solid var(--line); }
+  .chip.on { background: var(--gold); color: #1a1408; border-color: var(--gold); }
+  .item { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px;
+    margin-top: 10px; cursor: pointer; }
+  .item .cat { font-size: 11px; letter-spacing: .16em; color: var(--gold); text-transform: uppercase; }
+  .item .t { font-family: "Iowan Old Style", Georgia, serif; font-size: 17px; margin: 6px 0; color: var(--text); }
+  .item .o { font-family: "Iowan Old Style", Georgia, serif; font-style: italic; font-size: 14px; color: var(--gold); white-space: pre-line; }
+  .item .r { font-size: 13px; color: var(--muted); }
+
+  /* setup */
+  ol { padding-left: 22px; } li { margin: 6px 0; }
+  code, .url { font: 13px/1.4 ui-monospace, Menlo, monospace; background: #0006; border: 1px solid var(--line);
+    border-radius: 8px; padding: 2px 6px; word-break: break-all; color: #ffe6b0; }
+  .url { display: block; padding: 10px 12px; margin: 8px 0; }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 4px 16px 12px; margin-top: 14px; }
+  b { color: var(--text); }
+
+  /* tab bar */
+  nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: #0a1428ee;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line);
+    padding: 8px 8px calc(var(--safe-bottom) + 6px); }
+  nav a { flex: 1; text-align: center; color: var(--muted); text-decoration: none; font-size: 12px; padding: 4px 0; }
+  nav a.on { color: var(--gold); }
+  nav svg { display: block; margin: 0 auto 3px; width: 24px; height: 24px; }
+  .toast { position: fixed; left: 50%; bottom: calc(var(--safe-bottom) + 90px); transform: translateX(-50%);
+    background: #000c; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+
+<section class="view on" id="v-home">
+  <h1>Deen Reminders</h1>
+  <div class="frame">
+    <img id="wp" alt="">
+    <div class="date" id="date"></div>
+    <div class="clock" id="clock"></div>
+  </div>
+  <div class="row">
+    <button id="next">↻ Another</button>
+    <button class="primary" id="save">Save to Photos</button>
+  </div>
+  <p class="muted" style="text-align:center;margin-top:14px" id="meta"></p>
+</section>
+
+<section class="view" id="v-browse">
+  <h1>All reminders</h1>
+  <div class="chips" id="chips"></div>
+  <div id="list"></div>
+</section>
+
+<section class="view" id="v-setup">
+  <h1>Auto lock screen</h1>
+  <p>This makes your iPhone switch to a new reminder automatically, using Apple's free <b>Shortcuts</b> app. You only set it up once.</p>
+
+  <div class="box">
+    <h3>Before you start</h3>
+    <p>Your lock screen must be a normal <b>Photo</b> wallpaper (not "Photo Shuffle"). Save any reminder with <b>Save to Photos</b>, then long-press the lock screen → <b>+</b> → <b>Photos</b> → pick it.</p>
+  </div>
+
+  <div class="box">
+    <h3>Step 1 · Make the shortcut</h3>
+    <ol>
+      <li>Open <b>Shortcuts</b> → tap <b>+</b>. Name it <b>Deen Wallpaper</b>.</li>
+      <li>Add the action <b>Random Number</b>. Set Minimum <b>1</b> and Maximum <b id="max">200</b>.</li>
+      <li>Add the action <b>Text</b> and type this address. Where it says <code>NUMBER</code>, delete that word and insert the blue <b>Random Number</b> variable instead:
+        <span class="url" id="url"></span>
+        <button id="copy" style="flex:none;padding:10px 14px;font-size:14px">Copy address</button>
+      </li>
+      <li>Add <b>Get Contents of URL</b> (it will use the Text automatically).</li>
+      <li>Add <b>Set Wallpaper Photo</b> (called <b>Set Wallpaper</b> on older iOS). Tap it, choose your current wallpaper, and turn <b>off</b> "Show Preview". If you see "Crop to Subject", turn that off too.</li>
+      <li>Tap ▶︎ once to test. When it asks to allow access to <code id="host">github.io</code>, choose <b>Always Allow</b>.</li>
+    </ol>
+  </div>
+
+  <div class="box">
+    <h3>Step 2 · Make it run by itself</h3>
+    <ol>
+      <li>In Shortcuts, go to the <b>Automation</b> tab → <b>+</b>.</li>
+      <li><b>Time of Day</b>: pick a time (for example Fajr), <b>Daily</b>, choose <b>Run Immediately</b>, then pick <b>Deen Wallpaper</b>. Add a few of these through the day.</li>
+      <li><b>App</b> (recommended): choose Instagram, TikTok, YouTube, etc. → <b>Is Opened</b> → <b>Run Immediately</b> → <b>Deen Wallpaper</b>. Every time you open a distraction, a fresh reminder waits on your lock screen.</li>
+      <li>Optional: <b>Charger</b> → Is Connected, so you wake up to a new reminder.</li>
+    </ol>
+  </div>
+
+  <div class="box">
+    <h3>Add this app to your Home Screen</h3>
+    <p>In Safari tap <b>Share</b> → <b>Add to Home Screen</b>. It opens full-screen like a normal app.</p>
+  </div>
+</section>
+
+<section class="view" id="v-about">
+  <h1>About the reminders</h1>
+  <p>New wallpapers are made automatically every few hours, so the collection keeps changing.</p>
+  <h3>The Holy Quran</h3>
+  <p>English translation by Saheeh International. Chosen ayahs about remembrance, this life and the Hereafter, plus other short ayahs picked from the whole Quran each time.</p>
+  <h3>Sahih Hadith</h3>
+  <p>Only from Sahih al-Bukhari and Sahih Muslim, with their hadith numbers so you can look them up.</p>
+  <h3>Hazrat Ali (RA)</h3>
+  <p>Sayings from Nahj al-Balagha. Saying numbers can differ by one or two between printed editions.</p>
+  <h3>Allama Iqbal &amp; Maulana Rumi</h3>
+  <p>Iqbal's verses with the original Urdu (in Roman letters) and an English meaning; Rumi from the Masnavi and Fihi Ma Fihi.</p>
+  <p class="muted">The hadith, Ali, Iqbal and Rumi texts are English renderings of the meaning. Check any reminder in a trusted book or with a scholar if you are unsure.</p>
+  <p class="muted" id="gen"></p>
+</section>
+
+<nav>
+  <a href="#home" data-v="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10 6h4"/></svg>Reminder</a>
+  <a href="#browse" data-v="browse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Browse</a>
+  <a href="#setup" data-v="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Setup</a>
+  <a href="#about" data-v="about"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg>About</a>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const LABEL = { quran: "The Holy Quran", hadith: "Sahih Hadith", ali: "Hazrat Ali (RA)",
+                iqbal: "Allama Iqbal", rumi: "Maulana Rumi", scholar: "Words of wisdom" };
+const base = location.href.replace(/[#?].*$/, "").replace(/[^/]*$/, "");
+const $ = id => document.getElementById(id);
+let data = { count: 0, items: [] }, current = 0, version = "", filter = "all";
+
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2200); }
+
+function tick() {
+  const d = new Date();
+  $("clock").textContent = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M/i, "");
+  $("date").textContent = d.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
+}
+
+function show(n) {
+  if (!data.count) return;
+  current = n;
+  const img = $("wp");
+  img.style.opacity = 0;
+  const src = `${base}w/${n}.jpg?v=${version}`;
+  const pre = new Image();
+  pre.onload = () => { img.src = src; img.style.opacity = 1; };
+  pre.src = src;
+  const it = data.items[n - 1];
+  img.alt = it ? `${it.text} — ${it.ref}` : "";
+  $("meta").textContent = it ? `${LABEL[it.cat] || ""} · ${it.ref}` : "";
+}
+
+function randomOther() {
+  let n; do { n = 1 + Math.floor(Math.random() * data.count); } while (data.count > 1 && n === current);
+  show(n);
+}
+
+async function save() {
+  try {
+    const blob = await (await fetch(`${base}w/${current}.jpg?v=${version}`)).blob();
+    const file = new File([blob], `deen-reminder-${current}.jpg`, { type: "image/jpeg" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file] });
+    } else {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+      toast("Image downloaded");
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") { window.open(`${base}w/${current}.jpg`, "_blank"); toast("Long-press the image → Save to Photos"); }
+  }
+}
+
+function renderList() {
+  const cats = ["all", ...new Set(data.items.map(i => i.cat))];
+  $("chips").innerHTML = cats.map(c => `<span class="chip ${c === filter ? "on" : ""}" data-c="${c}">${c === "all" ? "All" : LABEL[c]}</span>`).join("");
+  const seen = new Set();
+  $("list").innerHTML = data.items.filter(i => (filter === "all" || i.cat === filter) && !seen.has(i.text) && seen.add(i.text))
+    .map(i => `<div class="item" data-n="${i.n}"><div class="cat">${LABEL[i.cat] || ""}</div>
+      ${i.original ? `<div class="o">${esc(i.original)}</div>` : ""}<div class="t">${esc(i.text)}</div><div class="r">${esc(i.ref)}</div></div>`).join("");
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function go(v) {
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + v));
+  document.querySelectorAll("nav a").forEach(a => a.classList.toggle("on", a.dataset.v === v));
+  window.scrollTo(0, 0);
+}
+
+$("next").onclick = randomOther;
+$("save").onclick = save;
+$("chips").onclick = e => { const c = e.target.dataset.c; if (c) { filter = c; renderList(); } };
+$("list").onclick = e => { const el = e.target.closest(".item"); if (el) { show(+el.dataset.n); location.hash = "home"; } };
+$("copy").onclick = async () => { try { await navigator.clipboard.writeText($("url").textContent); toast("Copied"); } catch { toast("Press and hold to copy"); } };
+window.addEventListener("hashchange", () => go((location.hash || "#home").slice(1)));
+
+$("url").textContent = `${base}w/NUMBER.jpg`;
+$("host").textContent = location.host || "github.io";
+tick(); setInterval(tick, 15000);
+go((location.hash || "#home").slice(1));
+
+fetch(`${base}w/list.json?t=${Date.now()}`).then(r => r.json()).then(j => {
+  data = j; version = encodeURIComponent(j.generated);
+  $("max").textContent = j.count;
+  $("gen").textContent = `${j.count} wallpapers · last refreshed ${new Date(j.generated).toLocaleString()}`;
+  renderList();
+  randomOther();
+}).catch(() => { $("meta").textContent = "Could not load reminders. Check your connection."; });
+</script>
+</body>
+</html>
